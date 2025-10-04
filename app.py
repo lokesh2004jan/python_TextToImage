@@ -7,10 +7,12 @@ from stability_sdk import client
 import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
 from dotenv import load_dotenv
 
-# Load env vars
+
 load_dotenv()
 
-STABILITY_KEY = "sk-PDDADMUVmwlypOQvGJ0jQmwf61E4bEiojLBAVQPGUNHitK4I"
+load_dotenv()  
+STABILITY_KEY = os.getenv("STABILITY_KEY") 
+
 STABILITY_HOST = "grpc.stability.ai:443"
 
 app = FastAPI()
