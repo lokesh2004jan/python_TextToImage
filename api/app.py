@@ -1,18 +1,18 @@
-# api/app.py
-
-from fastapi import FastAPI, UploadFile, Form
+from fastapi import FastAPI, Form
 from fastapi.responses import StreamingResponse, JSONResponse
-from PIL import Image
-import io, os, time
 from stability_sdk import client
 import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
+from PIL import Image
+import io, os, time, warnings
 from dotenv import load_dotenv
 
 load_dotenv()
-STABILITY_KEY = os.getenv("STABILITY_KEY")
+
+STABILITY_KEY = os.getenv("STABILITY_KEY") or "YOUR_KEY_HERE"
 
 app = FastAPI()
 
+# Initialize Stability AI client
 stability_api = client.StabilityInference(
     key=STABILITY_KEY,
     verbose=True,
@@ -23,50 +23,36 @@ stability_api = client.StabilityInference(
 def test():
     return {"status": "Server is running!"}
 
-@app.post("/enhance-sketch")
-async def enhance_sketch(
-    file: UploadFile,
-    prompt: str = Form(...),
-    thickness: str = Form(...),
-    color: str = Form(...),
-    glow: str = Form(...),
-    material: str = Form(...)
-):
-    try:
-        init_image = Image.open(file.file).convert("RGB")
-    except Exception:
-        return JSONResponse({"error": "Invalid image file"}, status_code=400)
+@app.post("/generate-image")
+async def generate_image(prompt: str = Form(...)):
+    """
+    Generate image from user prompt.
+    """
+    if not prompt:
+        return JSONResponse({"error": "Prompt cannot be empty"}, status_code=400)
 
-    user_prompt = (
-        f"{prompt} Apply the following properties: thickness: {thickness}, color: {color}, "
-        f"glow style: {glow}, material: {material}. Center the jewelry, front-facing, no background, transparent background look."
+    # Generate image
+    answers = stability_api.generate(
+        prompt=prompt,
+        seed=int(time.time()),
+        steps=40,
+        cfg_scale=7.5,
+        width=1024,
+        height=1024,
+        samples=1,
+        sampler=generation.SAMPLER_K_DPMPP_2M
     )
 
-    try:
-        answers = stability_api.generate(
-            prompt=user_prompt,
-            init_image=init_image,
-            start_schedule=0.6,
-            seed=int(time.time()),
-            steps=40,
-            cfg_scale=7.5,
-            width=1024,
-            height=1024,
-            samples=1,
-            sampler=generation.SAMPLER_K_DPMPP_2M
-        )
-    except Exception as e:
-        return JSONResponse({"error": f"Failed to generate image: {str(e)}"}, status_code=500)
-
+    # Return the first generated image
     for resp in answers:
         for artifact in resp.artifacts:
-            if artifact.type == generation.ARTIFACT_IMAGE:
+            if artifact.finish_reason == generation.FILTER:
+                warnings.warn("⚠️ Safety filter triggered. Try a different prompt.")
+            elif artifact.type == generation.ARTIFACT_IMAGE:
                 img = Image.open(io.BytesIO(artifact.binary))
-                buffered = io.BytesIO()
-                img.save(buffered, format="PNG")
-                buffered.seek(0)
-                return StreamingResponse(buffered, media_type="image/png")
+                buf = io.BytesIO()
+                img.save(buf, format="PNG")
+                buf.seek(0)
+                return StreamingResponse(buf, media_type="image/png")
 
-    return JSONResponse({"error": "No image generated"}, status_code=500)
-
-# Vercel will detect `app` as the ASGI entrypoint automatically
+    return JSONResponse({"error": "No image generated"})
