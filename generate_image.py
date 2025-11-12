@@ -7,7 +7,8 @@ from stability_sdk import client
 import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
 
 # 🔑 Set Stability AI credentials
-os.environ['STABILITY_KEY'] = 'sk-PrJPO9xboU2kAwrttMkAu3ztih3PtxRr00DDi4IRc1gp7Ke5'
+os.environ['STABILITY_KEY'] = 'sk-AITVAxnXaA28OII2yL56dedrppNy3khUVjOqdtZq8PupCSUN'
+
 os.environ['STABILITY_HOST'] = 'grpc.stability.ai:443'
 
 # ✅ Ask user for input
@@ -68,3 +69,4 @@ for resp in answers:
             filename = f"jewelry_output_{int(time.time())}.png"
             img.save(filename)
             print(f"✅ Image saved as {filename}")
+
