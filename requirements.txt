@@ -1,5 +1,4 @@
 fastapi
 python-multipart
 pillow
-stability-sdk
-python-dotenv
+requests
