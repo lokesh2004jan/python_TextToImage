@@ -8,6 +8,9 @@ import time
 app = FastAPI()
 
 STABILITY_KEY = os.getenv("STABILITY_KEY")
+@app.get("/")
+def health():
+    return {"status": "API is running"}
 
 @app.post("/generate-image")
 async def generate_image(prompt: str = Form(...)):
