@@ -8,6 +8,7 @@ import time
 app = FastAPI()
 
 STABILITY_KEY = os.getenv("STABILITY_KEY")
+
 @app.get("/")
 def health():
     return {"status": "API is running"}
@@ -24,15 +25,15 @@ async def generate_image(prompt: str = Form(...)):
 
     headers = {
         "Authorization": f"Bearer {STABILITY_KEY}",
-        "Accept": "image/png"
+        "Accept": "image/*"
     }
 
     files = {
         "prompt": (None, prompt),
         "output_format": (None, "png"),
         "seed": (None, str(int(time.time()))),
-        "cfg_scale": (None, "7.5"),
-        "steps": (None, "40")
+        "steps": (None, "40"),
+        "cfg_scale": (None, "7.5")
     }
 
     response = requests.post(
