@@ -1,43 +1,51 @@
 from fastapi import FastAPI, Form
 from fastapi.responses import StreamingResponse, JSONResponse
-from stability_sdk import client
-import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
-from PIL import Image
-import io, os, time, warnings
+import requests
+import os
+import io
+import time
 
 app = FastAPI()
 
-stability_api = client.StabilityInference(
-    key=os.getenv("STABILITY_KEY"),
-    verbose=True,
-    engine="stable-diffusion-xl-1024-v1-0",
-)
+STABILITY_KEY = os.getenv("STABILITY_KEY")
 
 @app.post("/generate-image")
 async def generate_image(prompt: str = Form(...)):
     if not prompt:
-        return JSONResponse({"error": "Prompt cannot be empty"}, status_code=400)
+        return JSONResponse(
+            {"error": "Prompt cannot be empty"},
+            status_code=400
+        )
 
-    answers = stability_api.generate(
-        prompt=prompt,
-        seed=int(time.time()),
-        steps=40,
-        cfg_scale=7.5,
-        width=1024,
-        height=1024,
-        samples=1,
-        sampler=generation.SAMPLER_K_DPMPP_2M
+    url = "https://api.stability.ai/v2beta/stable-image/generate/sd3"
+
+    headers = {
+        "Authorization": f"Bearer {STABILITY_KEY}",
+        "Accept": "image/png"
+    }
+
+    files = {
+        "prompt": (None, prompt),
+        "output_format": (None, "png"),
+        "seed": (None, str(int(time.time()))),
+        "cfg_scale": (None, "7.5"),
+        "steps": (None, "40")
+    }
+
+    response = requests.post(
+        url,
+        headers=headers,
+        files=files,
+        timeout=60
     )
 
-    for resp in answers:
-        for artifact in resp.artifacts:
-            if artifact.finish_reason == generation.FILTER:
-                warnings.warn("⚠️ Safety filter triggered. Try a different prompt.")
-            elif artifact.type == generation.ARTIFACT_IMAGE:
-                img = Image.open(io.BytesIO(artifact.binary))
-                buf = io.BytesIO()
-                img.save(buf, format="PNG")
-                buf.seek(0)
-                return StreamingResponse(buf, media_type="image/png")
+    if response.status_code != 200:
+        return JSONResponse(
+            {"error": response.text},
+            status_code=response.status_code
+        )
 
-    return JSONResponse({"error": "No image generated"})
+    return StreamingResponse(
+        io.BytesIO(response.content),
+        media_type="image/png"
+    )
