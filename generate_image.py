@@ -7,7 +7,7 @@ from stability_sdk import client
 import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
 
 # 🔑 Set Stability AI credentials
-os.environ['STABILITY_KEY'] = 'sk-AITVAxnXaA28OII2yL56dedrppNy3khUVjOqdtZq8PupCSUN'
+os.environ['STABILITY_KEY'] = 'sk-6ClfEArTis43ggd4mvBTDe17S4awCyYKiZJaAzRILDsT2VV6'
 
 os.environ['STABILITY_HOST'] = 'grpc.stability.ai:443'
 
